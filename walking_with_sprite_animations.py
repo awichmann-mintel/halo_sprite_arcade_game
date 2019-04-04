@@ -10,18 +10,19 @@ python -m arcade.examples.sprite_move_animation
 """
 import arcade
 from datetime import datetime, timedelta
+import requests
 import random
 import os
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 700
 SCREEN_TITLE = "Move with a Sprite Animation Example"
 
 COIN_SCALE = 0.5
-COIN_COUNT = 50
+COIN_COUNT = 7
 
 MOVEMENT_SPEED = 5
-TOTAL_TIME_SECONDS = 2
+TOTAL_TIME_SECONDS = 30
 
 
 class MyGame(arcade.Window):
@@ -102,7 +103,7 @@ class MyGame(arcade.Window):
 
         self.all_sprites_list.append(self.player)
 
-        for i in range(3):
+        for i in range(COIN_COUNT):
             coin = arcade.AnimatedTimeSprite(scale=0.5)
             coin.center_x = random.randrange(SCREEN_WIDTH)
             coin.center_y = random.randrange(SCREEN_HEIGHT)
@@ -178,7 +179,12 @@ class MyGame(arcade.Window):
         for coin in hit_list:
             coin.kill()
             self.score += 1
-        if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):
+        if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):        
+            arcade.draw_text("Score "+str(self.score), SCREEN_WIDTH/2, SCREEN_HEIGHT/2, arcade.color.ALABAMA_CRIMSON, 14)
+            print("posting score " + str(self.score))
+            response = requests.post("http://localhost:8080/scores/test/", json={"score": self.score})
+            if response.status_code == 200:
+                print('Great Success!')
             for sprite in self.all_sprites_list:
                 sprite.kill()
 
