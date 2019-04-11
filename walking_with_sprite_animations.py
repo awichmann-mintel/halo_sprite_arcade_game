@@ -24,6 +24,8 @@ COIN_COUNT = 2
 MOVEMENT_SPEED = 5
 TOTAL_TIME_SECONDS = 30
 
+GAME_RUNNING = 0
+GAME_OVER = 1
 
 class MyGame(arcade.Window):
     """ Main application class. """
@@ -53,7 +55,7 @@ class MyGame(arcade.Window):
 
     def setup(self):
         self.start_time = datetime.now()
-        self.game_not_over = True
+        self.game_state = GAME_RUNNING
         self.time_left = timedelta(seconds=TOTAL_TIME_SECONDS) - (datetime.now() - self.start_time)
 
         self.all_sprites_list = arcade.SpriteList()
@@ -132,6 +134,24 @@ class MyGame(arcade.Window):
 
         # This command has to happen before we start drawing
         arcade.start_render()
+        
+        if self.game_state == GAME_RUNNING:
+            self.draw_game()
+
+        elif self.game_state == GAME_OVER:
+            self.draw_game_over()
+
+        # else:
+        #     self.draw_game()
+        #     self.draw_game_over()
+
+    def draw_game(self):
+        """
+        Render the screen.
+        """
+
+        # This command has to happen before we start drawing
+        arcade.start_render()
 
         # Draw all the sprites.
         self.all_sprites_list.draw()
@@ -140,6 +160,18 @@ class MyGame(arcade.Window):
         output = f"Score: {self.score}"
         arcade.draw_text(output, 10, 20, arcade.color.WHITE, 14)
         arcade.draw_text(str(self.time_left), 10, 35, arcade.color.WHITE, 14)
+
+    def draw_game_over(self):
+        """
+        Draw "Game over" across the screen.
+        """
+        output = "Game Over"
+        arcade.draw_text(output, (SCREEN_WIDTH/2)-120, SCREEN_HEIGHT/2, arcade.color.WHITE, 54)
+
+        output = "Click to restart"
+        arcade.draw_text(output, (SCREEN_WIDTH/2)-120, (SCREEN_HEIGHT/2)-30, arcade.color.WHITE, 24)
+
+        arcade.draw_text("Score "+str(self.score), (SCREEN_WIDTH/2)-120, (SCREEN_HEIGHT/2)-60, arcade.color.WHITE, 14)
 
     def on_key_press(self, key, modifiers):
         """
@@ -163,10 +195,14 @@ class MyGame(arcade.Window):
         elif key == arcade.key.LEFT or key == arcade.key.RIGHT:
             self.player.change_x = 0
 
+    def on_mouse_press(self, x, y, button, modifiers):
+        if self.game_state == GAME_OVER:
+            self.setup()
+
     def update(self, delta_time):
         """ Movement and game logic """
 
-        if self.game_not_over:
+        if self.game_state == GAME_RUNNING:
             self.all_sprites_list.update()
             self.all_sprites_list.update_animation()
             if self.time_left <= timedelta(seconds=0):
@@ -181,18 +217,13 @@ class MyGame(arcade.Window):
             for coin in hit_list:
                 coin.kill()
                 self.score += 1
-            if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):        
-                arcade.draw_text("Score "+str(self.score), 30, 40, arcade.color.ALABAMA_CRIMSON, 14)
-                print("posting score " + str(self.score))
+            if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):
                 response = requests.post("http://localhost:8080/scores/api/", json={"score": self.score})
                 if response.status_code == 201:
                     print('Great Success!')
                 for sprite in self.all_sprites_list:
                     sprite.kill()
-                self.game_not_over = False
-        else:
-            # Add play again
-            pass
+                self.game_state = GAME_OVER
 
 
 def main():
