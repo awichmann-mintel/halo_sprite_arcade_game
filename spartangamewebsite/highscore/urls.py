@@ -13,7 +13,7 @@ router = routers.DefaultRouter()
 urlpatterns = [
 #    url(r'^/', include(router.urls)),
     url(r"^scoreboard/", ScoreBoardView.as_view()),
-    url(r"^test/", score_list)
+    url(r"^api/", score_list)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

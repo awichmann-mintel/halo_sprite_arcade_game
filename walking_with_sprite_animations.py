@@ -19,7 +19,7 @@ SCREEN_HEIGHT = 700
 SCREEN_TITLE = "Move with a Sprite Animation Example"
 
 COIN_SCALE = 0.5
-COIN_COUNT = 7
+COIN_COUNT = 2
 
 MOVEMENT_SPEED = 5
 TOTAL_TIME_SECONDS = 30
@@ -53,6 +53,7 @@ class MyGame(arcade.Window):
 
     def setup(self):
         self.start_time = datetime.now()
+        self.game_not_over = True
         self.time_left = timedelta(seconds=TOTAL_TIME_SECONDS) - (datetime.now() - self.start_time)
 
         self.all_sprites_list = arcade.SpriteList()
@@ -165,28 +166,33 @@ class MyGame(arcade.Window):
     def update(self, delta_time):
         """ Movement and game logic """
 
-        self.all_sprites_list.update()
-        self.all_sprites_list.update_animation()
-        if self.time_left <= timedelta(seconds=0):
-            self.time_left = timedelta(seconds=0)
+        if self.game_not_over:
+            self.all_sprites_list.update()
+            self.all_sprites_list.update_animation()
+            if self.time_left <= timedelta(seconds=0):
+                self.time_left = timedelta(seconds=0)
+            else:
+                self.time_left = timedelta(seconds=TOTAL_TIME_SECONDS) - (datetime.now() - self.start_time)
+
+            # Generate a list of all sprites that collided with the player.
+            hit_list = arcade.check_for_collision_with_list(self.player, self.coin_list)
+
+            # Loop through each colliding sprite, remove it, and add to the score.
+            for coin in hit_list:
+                coin.kill()
+                self.score += 1
+            if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):        
+                arcade.draw_text("Score "+str(self.score), 30, 40, arcade.color.ALABAMA_CRIMSON, 14)
+                print("posting score " + str(self.score))
+                response = requests.post("http://localhost:8080/scores/api/", json={"score": self.score})
+                if response.status_code == 201:
+                    print('Great Success!')
+                for sprite in self.all_sprites_list:
+                    sprite.kill()
+                self.game_not_over = False
         else:
-            self.time_left = timedelta(seconds=TOTAL_TIME_SECONDS) - (datetime.now() - self.start_time)
-
-        # Generate a list of all sprites that collided with the player.
-        hit_list = arcade.check_for_collision_with_list(self.player, self.coin_list)
-
-        # Loop through each colliding sprite, remove it, and add to the score.
-        for coin in hit_list:
-            coin.kill()
-            self.score += 1
-        if len(self.coin_list) == 0 or self.time_left <= timedelta(seconds=0):        
-            arcade.draw_text("Score "+str(self.score), SCREEN_WIDTH/2, SCREEN_HEIGHT/2, arcade.color.ALABAMA_CRIMSON, 14)
-            print("posting score " + str(self.score))
-            response = requests.post("http://localhost:8080/scores/test/", json={"score": self.score})
-            if response.status_code == 200:
-                print('Great Success!')
-            for sprite in self.all_sprites_list:
-                sprite.kill()
+            # Add play again
+            pass
 
 
 def main():
